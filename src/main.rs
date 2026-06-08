@@ -4,7 +4,7 @@ mod macos;
 mod types;
 
 use clap::Parser;
-use cli::{Cli, Commands, MouseCommands, MouseEventArgs};
+use cli::{Cli, Commands, DragArgs, MouseCommands, MouseEventArgs};
 use error::SilentMouseError;
 use std::time::Duration;
 use types::WindowPoint;
@@ -36,6 +36,7 @@ fn run() -> Result<(), SilentMouseError> {
             );
             Ok(())
         }
+        Commands::Drag(args) => drag(args),
         Commands::Mouse(args) => {
             let (kind, event_args) = match args.command {
                 MouseCommands::Move(args) => (macos::MouseEventKind::Move, args),
@@ -46,6 +47,27 @@ fn run() -> Result<(), SilentMouseError> {
             post_mouse(kind, event_args)
         }
     }
+}
+
+fn drag(args: DragArgs) -> Result<(), SilentMouseError> {
+    let from = WindowPoint::new(args.from_x, args.from_y)?;
+    let to = WindowPoint::new(args.to_x, args.to_y)?;
+    let duration = Duration::from_millis(args.duration_ms);
+    let result = macos::drag_window(args.window_id, from, to, duration)?;
+    println!(
+        "dragged window={} pid={} from_x={} from_y={} to_x={} to_y={} duration_ms={} steps={} active={} background_flag={} window_location_setter=true",
+        result.window_id,
+        result.pid,
+        format_coord(result.from.x),
+        format_coord(result.from.y),
+        format_coord(result.to.x),
+        format_coord(result.to.y),
+        result.duration.as_millis(),
+        result.drag_steps,
+        result.target_was_active,
+        result.used_background_flag
+    );
+    Ok(())
 }
 
 fn post_mouse(kind: macos::MouseEventKind, args: MouseEventArgs) -> Result<(), SilentMouseError> {

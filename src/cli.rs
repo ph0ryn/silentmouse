@@ -15,6 +15,9 @@ pub enum Commands {
     /// Convenience left click built from raw mouse events.
     Click(ClickArgs),
 
+    /// Convenience drag built from raw mouse events.
+    Drag(DragArgs),
+
     /// Raw mouse event API operations.
     Mouse(MouseArgs),
 }
@@ -35,6 +38,33 @@ pub struct ClickArgs {
 
     /// Mouse-down hold duration in milliseconds.
     #[arg(short = 'd', long = "duration", default_value_t = DEFAULT_CLICK_DURATION_MS)]
+    pub duration_ms: u64,
+}
+
+#[derive(Debug, Args)]
+pub struct DragArgs {
+    /// Target CGWindowID.
+    #[arg(short = 'w', long = "window-id")]
+    pub window_id: u32,
+
+    /// Start window-local X coordinate from the target window's top-left.
+    #[arg(long = "from-x")]
+    pub from_x: f64,
+
+    /// Start window-local Y coordinate from the target window's top-left.
+    #[arg(long = "from-y")]
+    pub from_y: f64,
+
+    /// End window-local X coordinate from the target window's top-left.
+    #[arg(long = "to-x")]
+    pub to_x: f64,
+
+    /// End window-local Y coordinate from the target window's top-left.
+    #[arg(long = "to-y")]
+    pub to_y: f64,
+
+    /// Drag duration in milliseconds.
+    #[arg(short = 'd', long = "duration")]
     pub duration_ms: u64,
 }
 
@@ -148,5 +178,35 @@ mod tests {
         assert_eq!(args.window_id, 9);
         assert_eq!(args.x, 10.0);
         assert_eq!(args.y, 20.0);
+    }
+
+    #[test]
+    fn parses_drag_args() {
+        let cli = Cli::parse_from([
+            "silentmouse",
+            "drag",
+            "-w",
+            "11",
+            "--from-x",
+            "10",
+            "--from-y",
+            "20",
+            "--to-x",
+            "30",
+            "--to-y",
+            "40",
+            "-d",
+            "500",
+        ]);
+
+        let Commands::Drag(args) = cli.command else {
+            panic!("expected drag command");
+        };
+        assert_eq!(args.window_id, 11);
+        assert_eq!(args.from_x, 10.0);
+        assert_eq!(args.from_y, 20.0);
+        assert_eq!(args.to_x, 30.0);
+        assert_eq!(args.to_y, 40.0);
+        assert_eq!(args.duration_ms, 500);
     }
 }

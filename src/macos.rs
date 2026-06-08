@@ -49,6 +49,17 @@ pub struct MouseEventResult {
     pub used_background_flag: bool,
 }
 
+pub struct DragResult {
+    pub window_id: u32,
+    pub pid: i32,
+    pub from: WindowPoint,
+    pub to: WindowPoint,
+    pub duration: Duration,
+    pub drag_steps: usize,
+    pub target_was_active: bool,
+    pub used_background_flag: bool,
+}
+
 pub fn click_window(
     window_id: u32,
     point: WindowPoint,
@@ -82,6 +93,29 @@ pub fn post_mouse_event(
         window_id: target.window_id,
         pid: target.pid,
         event_name: kind.name(),
+        target_was_active: target.is_active,
+        used_background_flag: !target.is_active,
+    })
+}
+
+pub fn drag_window(
+    window_id: u32,
+    from: WindowPoint,
+    to: WindowPoint,
+    duration: Duration,
+) -> Result<DragResult, SilentMouseError> {
+    ensure_accessibility_prompted()?;
+    let target = describe_window(window_id)?;
+    let set_window_location = resolve_set_window_location()?;
+    let drag_steps = post_drag(&target, from, to, duration, set_window_location)?;
+
+    Ok(DragResult {
+        window_id: target.window_id,
+        pid: target.pid,
+        from,
+        to,
+        duration,
+        drag_steps,
         target_was_active: target.is_active,
         used_background_flag: !target.is_active,
     })
@@ -147,6 +181,63 @@ fn post_left_click(
     thread::sleep(duration);
     CGEvent::post_to_pid(target.pid as pid_t, Some(&up));
     Ok(())
+}
+
+fn post_drag(
+    target: &WindowTarget,
+    from: WindowPoint,
+    to: WindowPoint,
+    duration: Duration,
+    set_window_location: SetWindowLocationFn,
+) -> Result<usize, SilentMouseError> {
+    let down = make_mouse_event(MouseEventKind::Down, target, from, 1, set_window_location)?;
+    CGEvent::post_to_pid(target.pid as pid_t, Some(&down));
+
+    let steps = drag_step_count(duration);
+    let step_delay = duration.checked_div(steps as u32).unwrap_or(Duration::ZERO);
+    for step in 1..=steps {
+        if !step_delay.is_zero() {
+            thread::sleep(step_delay);
+        }
+        let point = interpolate_window_point(from, to, step, steps);
+        let event = make_mouse_event(
+            MouseEventKind::Drag,
+            target,
+            point,
+            1 + step as i64,
+            set_window_location,
+        )?;
+        CGEvent::post_to_pid(target.pid as pid_t, Some(&event));
+    }
+
+    let up = make_mouse_event(
+        MouseEventKind::Up,
+        target,
+        to,
+        2 + steps as i64,
+        set_window_location,
+    )?;
+    CGEvent::post_to_pid(target.pid as pid_t, Some(&up));
+    Ok(steps)
+}
+
+fn drag_step_count(duration: Duration) -> usize {
+    let millis = duration.as_millis();
+    let steps = (millis / 16).max(1);
+    usize::try_from(steps.min(240)).unwrap_or(240)
+}
+
+fn interpolate_window_point(
+    from: WindowPoint,
+    to: WindowPoint,
+    step: usize,
+    steps: usize,
+) -> WindowPoint {
+    let t = step as f64 / steps as f64;
+    WindowPoint {
+        x: from.x + (to.x - from.x) * t,
+        y: from.y + (to.y - from.y) * t,
+    }
 }
 
 fn make_mouse_event(

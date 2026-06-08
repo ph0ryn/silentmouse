@@ -10,15 +10,18 @@ silentmouse mouse down -w 1 -x 250 -y 250
 silentmouse mouse drag -w 1 -x 300 -y 300
 silentmouse mouse up -w 1 -x 300 -y 300
 
+silentmouse drag -w 1 --from-x 250 --from-y 250 --to-x 300 --to-y 300 -d 500
+
 silentmouse click --window-id 1 -x 250 -y 250
 silentmouse click -w 1 -x 250 -y 250
 silentmouse click -w 1 -x 250 -y 250 --duration 200
 ```
 
 The `mouse` command is the raw event API. It does not store state; callers own
-event sequencing. `click` is a convenience command built from raw mouse down/up
-events. `--duration` / `-d` controls the milliseconds between mouse down and
-mouse up, and defaults to `35`.
+event sequencing. `click` and `drag` are convenience commands built from raw
+mouse events. `click --duration` / `-d` controls the milliseconds between mouse
+down and mouse up, and defaults to `35`. `drag --duration` / `-d` controls the
+total drag time.
 
 ## Permissions
 
