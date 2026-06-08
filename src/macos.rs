@@ -1,5 +1,5 @@
 use crate::error::SilentMouseError;
-use crate::types::{ClickResult, Rect, ScreenPoint, WindowTarget};
+use crate::types::{ClickResult, Rect, WindowPoint, WindowTarget};
 use core_foundation::array::CFArray;
 use core_foundation::base::{CFType, TCFType};
 use core_foundation::boolean::CFBoolean;
@@ -32,7 +32,7 @@ const POST_DELAY: Duration = Duration::from_millis(80);
 const NSEVENT_LEFT_MOUSE_DOWN: usize = 1;
 const NSEVENT_LEFT_MOUSE_UP: usize = 2;
 
-pub fn click_window(window_id: u32, point: ScreenPoint) -> Result<ClickResult, SilentMouseError> {
+pub fn click_window(window_id: u32, point: WindowPoint) -> Result<ClickResult, SilentMouseError> {
     ensure_accessibility_prompted()?;
     let target = describe_window(window_id)?;
     let set_window_location = resolve_set_window_location()?;
@@ -95,7 +95,7 @@ fn describe_window(window_id: u32) -> Result<WindowTarget, SilentMouseError> {
 
 fn post_left_click(
     target: &WindowTarget,
-    point: ScreenPoint,
+    point: WindowPoint,
     set_window_location: SetWindowLocationFn,
 ) -> Result<(), SilentMouseError> {
     let down = make_left_event(
@@ -122,11 +122,12 @@ fn post_left_click(
 fn make_left_event(
     event_type: usize,
     target: &WindowTarget,
-    point: ScreenPoint,
+    point: WindowPoint,
     event_number: i64,
     set_window_location: SetWindowLocationFn,
 ) -> Result<Retained<CGEvent>, SilentMouseError> {
-    let screen_point = CGPoint::new(point.x, point.y);
+    let absolute_point = target.bounds.screen_point(point);
+    let screen_point = CGPoint::new(absolute_point.x, absolute_point.y);
     let event = create_nsevent_cgevent(event_type, screen_point, target.window_id, event_number)?;
 
     if !target.is_active {
@@ -143,9 +144,8 @@ fn make_left_event(
     CGEvent::set_integer_value_field(Some(&event), CGEventField(92), i64::from(target.window_id));
     CGEvent::set_timestamp(Some(&event), current_timestamp_nanos());
 
-    let local = target.bounds.local_point(point);
     unsafe {
-        set_window_location(&*event as *const CGEvent, CGPoint::new(local.x, local.y));
+        set_window_location(&*event as *const CGEvent, CGPoint::new(point.x, point.y));
     }
 
     Ok(event)

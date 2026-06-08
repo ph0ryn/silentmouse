@@ -6,7 +6,7 @@ mod types;
 use clap::Parser;
 use cli::{Cli, Commands};
 use error::SilentMouseError;
-use types::ScreenPoint;
+use types::WindowPoint;
 
 fn main() {
     if let Err(error) = run() {
@@ -20,10 +20,10 @@ fn run() -> Result<(), SilentMouseError> {
 
     match cli.command {
         Commands::Click(args) => {
-            let point = ScreenPoint::new(args.x, args.y)?;
+            let point = WindowPoint::new(args.x, args.y)?;
             let result = macos::click_window(args.window_id, point)?;
             println!(
-                "clicked window={} pid={} x={} y={} active={} background_flag={} window_location_setter=true",
+                "clicked window={} pid={} local_x={} local_y={} active={} background_flag={} window_location_setter=true",
                 result.window_id,
                 result.pid,
                 format_coord(point.x),

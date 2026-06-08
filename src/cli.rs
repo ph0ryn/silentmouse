@@ -10,7 +10,7 @@ pub struct Cli {
 
 #[derive(Debug, Subcommand)]
 pub enum Commands {
-    /// Left-click a target window at a screen coordinate.
+    /// Left-click a target window at a window-local coordinate.
     Click(ClickArgs),
 }
 
@@ -20,11 +20,11 @@ pub struct ClickArgs {
     #[arg(short = 'w', long = "window-id")]
     pub window_id: u32,
 
-    /// Screen-space X coordinate.
+    /// Window-local X coordinate from the target window's top-left.
     #[arg(short = 'x')]
     pub x: f64,
 
-    /// Screen-space Y coordinate.
+    /// Window-local Y coordinate from the target window's top-left.
     #[arg(short = 'y')]
     pub y: f64,
 }

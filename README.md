@@ -1,15 +1,16 @@
 # silentmouse
 
 `silentmouse` posts a macOS left click to a target `CGWindowID` without requiring
-the target app to be focused.
+the target app to be focused. Coordinates are relative to the target window's
+top-left corner.
 
 ```sh
-silentmouse click --window-id 1 -x 1920 -y 1080
-silentmouse click -w 1 -x 1920 -y 1080
+silentmouse click --window-id 1 -x 250 -y 250
+silentmouse click -w 1 -x 250 -y 250
 ```
 
 The v1 CLI is intentionally narrow: one left click, one target window, one
-screen-space coordinate.
+window-local coordinate.
 
 ## Permissions
 
@@ -24,5 +25,5 @@ The workspace includes `tools/smoke/MouseProbe.app`. Launch it, find its
 `CGWindowID`, then click near the center of that window:
 
 ```sh
-cargo run --manifest-path silentmouse/Cargo.toml -- click -w <window-id> -x <x> -y <y>
+cargo run --manifest-path silentmouse/Cargo.toml -- click -w <window-id> -x 250 -y 250
 ```
