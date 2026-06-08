@@ -28,15 +28,18 @@ type SetWindowLocationFn = unsafe extern "C" fn(*const CGEvent, CGPoint);
 
 const CG_EVENT_FIELD_MOUSE_SUBTYPE: u32 = 7;
 const MOUSE_SUBTYPE: i64 = 3;
-const POST_DELAY: Duration = Duration::from_millis(80);
 const NSEVENT_LEFT_MOUSE_DOWN: usize = 1;
 const NSEVENT_LEFT_MOUSE_UP: usize = 2;
 
-pub fn click_window(window_id: u32, point: WindowPoint) -> Result<ClickResult, SilentMouseError> {
+pub fn click_window(
+    window_id: u32,
+    point: WindowPoint,
+    duration: Duration,
+) -> Result<ClickResult, SilentMouseError> {
     ensure_accessibility_prompted()?;
     let target = describe_window(window_id)?;
     let set_window_location = resolve_set_window_location()?;
-    post_left_click(&target, point, set_window_location)?;
+    post_left_click(&target, point, duration, set_window_location)?;
 
     Ok(ClickResult {
         window_id: target.window_id,
@@ -96,6 +99,7 @@ fn describe_window(window_id: u32) -> Result<WindowTarget, SilentMouseError> {
 fn post_left_click(
     target: &WindowTarget,
     point: WindowPoint,
+    duration: Duration,
     set_window_location: SetWindowLocationFn,
 ) -> Result<(), SilentMouseError> {
     let down = make_left_event(
@@ -114,7 +118,7 @@ fn post_left_click(
     )?;
 
     CGEvent::post_to_pid(target.pid as pid_t, Some(&down));
-    thread::sleep(POST_DELAY);
+    thread::sleep(duration);
     CGEvent::post_to_pid(target.pid as pid_t, Some(&up));
     Ok(())
 }

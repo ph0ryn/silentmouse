@@ -1,5 +1,7 @@
 use crate::error::SilentMouseError;
 
+pub const DEFAULT_CLICK_DURATION_MS: u64 = 80;
+
 #[derive(Clone, Copy, Debug, PartialEq)]
 pub struct ScreenPoint {
     pub x: f64,
