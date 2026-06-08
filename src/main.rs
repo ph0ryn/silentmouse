@@ -4,7 +4,7 @@ mod macos;
 mod types;
 
 use clap::Parser;
-use cli::{Cli, Commands};
+use cli::{Cli, Commands, MouseCommands, MouseEventArgs};
 use error::SilentMouseError;
 use std::time::Duration;
 use types::WindowPoint;
@@ -36,7 +36,32 @@ fn run() -> Result<(), SilentMouseError> {
             );
             Ok(())
         }
+        Commands::Mouse(args) => {
+            let (kind, event_args) = match args.command {
+                MouseCommands::Move(args) => (macos::MouseEventKind::Move, args),
+                MouseCommands::Down(args) => (macos::MouseEventKind::Down, args),
+                MouseCommands::Drag(args) => (macos::MouseEventKind::Drag, args),
+                MouseCommands::Up(args) => (macos::MouseEventKind::Up, args),
+            };
+            post_mouse(kind, event_args)
+        }
     }
+}
+
+fn post_mouse(kind: macos::MouseEventKind, args: MouseEventArgs) -> Result<(), SilentMouseError> {
+    let point = WindowPoint::new(args.x, args.y)?;
+    let result = macos::post_mouse_event(args.window_id, point, kind)?;
+    println!(
+        "posted mouse {} window={} pid={} local_x={} local_y={} active={} background_flag={} window_location_setter=true",
+        result.event_name,
+        result.window_id,
+        result.pid,
+        format_coord(point.x),
+        format_coord(point.y),
+        result.target_was_active,
+        result.used_background_flag
+    );
+    Ok(())
 }
 
 fn format_coord(value: f64) -> String {

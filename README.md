@@ -5,14 +5,20 @@ the target app to be focused. Coordinates are relative to the target window's
 top-left corner.
 
 ```sh
+silentmouse mouse move -w 1 -x 250 -y 250
+silentmouse mouse down -w 1 -x 250 -y 250
+silentmouse mouse drag -w 1 -x 300 -y 300
+silentmouse mouse up -w 1 -x 300 -y 300
+
 silentmouse click --window-id 1 -x 250 -y 250
 silentmouse click -w 1 -x 250 -y 250
 silentmouse click -w 1 -x 250 -y 250 --duration 200
 ```
 
-The v1 CLI is intentionally narrow: one left click, one target window, one
-window-local coordinate. `--duration` / `-d` controls the milliseconds between
-mouse down and mouse up, and defaults to `35`.
+The `mouse` command is the raw event API. It does not store state; callers own
+event sequencing. `click` is a convenience command built from raw mouse down/up
+events. `--duration` / `-d` controls the milliseconds between mouse down and
+mouse up, and defaults to `35`.
 
 ## Permissions
 

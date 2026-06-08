@@ -28,8 +28,26 @@ type SetWindowLocationFn = unsafe extern "C" fn(*const CGEvent, CGPoint);
 
 const CG_EVENT_FIELD_MOUSE_SUBTYPE: u32 = 7;
 const MOUSE_SUBTYPE: i64 = 3;
+const NSEVENT_MOUSE_MOVED: usize = 5;
 const NSEVENT_LEFT_MOUSE_DOWN: usize = 1;
 const NSEVENT_LEFT_MOUSE_UP: usize = 2;
+const NSEVENT_LEFT_MOUSE_DRAGGED: usize = 6;
+
+#[derive(Clone, Copy, Debug)]
+pub enum MouseEventKind {
+    Move,
+    Down,
+    Drag,
+    Up,
+}
+
+pub struct MouseEventResult {
+    pub window_id: u32,
+    pub pid: i32,
+    pub event_name: &'static str,
+    pub target_was_active: bool,
+    pub used_background_flag: bool,
+}
 
 pub fn click_window(
     window_id: u32,
@@ -44,6 +62,26 @@ pub fn click_window(
     Ok(ClickResult {
         window_id: target.window_id,
         pid: target.pid,
+        target_was_active: target.is_active,
+        used_background_flag: !target.is_active,
+    })
+}
+
+pub fn post_mouse_event(
+    window_id: u32,
+    point: WindowPoint,
+    kind: MouseEventKind,
+) -> Result<MouseEventResult, SilentMouseError> {
+    ensure_accessibility_prompted()?;
+    let target = describe_window(window_id)?;
+    let set_window_location = resolve_set_window_location()?;
+    let event = make_mouse_event(kind, &target, point, 1, set_window_location)?;
+    CGEvent::post_to_pid(target.pid as pid_t, Some(&event));
+
+    Ok(MouseEventResult {
+        window_id: target.window_id,
+        pid: target.pid,
+        event_name: kind.name(),
         target_was_active: target.is_active,
         used_background_flag: !target.is_active,
     })
@@ -102,20 +140,8 @@ fn post_left_click(
     duration: Duration,
     set_window_location: SetWindowLocationFn,
 ) -> Result<(), SilentMouseError> {
-    let down = make_left_event(
-        NSEVENT_LEFT_MOUSE_DOWN,
-        target,
-        point,
-        91,
-        set_window_location,
-    )?;
-    let up = make_left_event(
-        NSEVENT_LEFT_MOUSE_UP,
-        target,
-        point,
-        92,
-        set_window_location,
-    )?;
+    let down = make_mouse_event(MouseEventKind::Down, target, point, 91, set_window_location)?;
+    let up = make_mouse_event(MouseEventKind::Up, target, point, 92, set_window_location)?;
 
     CGEvent::post_to_pid(target.pid as pid_t, Some(&down));
     thread::sleep(duration);
@@ -123,8 +149,8 @@ fn post_left_click(
     Ok(())
 }
 
-fn make_left_event(
-    event_type: usize,
+fn make_mouse_event(
+    kind: MouseEventKind,
     target: &WindowTarget,
     point: WindowPoint,
     event_number: i64,
@@ -132,7 +158,12 @@ fn make_left_event(
 ) -> Result<Retained<CGEvent>, SilentMouseError> {
     let absolute_point = target.bounds.screen_point(point);
     let screen_point = CGPoint::new(absolute_point.x, absolute_point.y);
-    let event = create_nsevent_cgevent(event_type, screen_point, target.window_id, event_number)?;
+    let event = create_nsevent_cgevent(
+        kind.nsevent_type(),
+        screen_point,
+        target.window_id,
+        event_number,
+    )?;
 
     if !target.is_active {
         CGEvent::set_flags(Some(&event), CGEventFlags::MaskCommand);
@@ -153,6 +184,26 @@ fn make_left_event(
     }
 
     Ok(event)
+}
+
+impl MouseEventKind {
+    fn nsevent_type(self) -> usize {
+        match self {
+            Self::Move => NSEVENT_MOUSE_MOVED,
+            Self::Down => NSEVENT_LEFT_MOUSE_DOWN,
+            Self::Drag => NSEVENT_LEFT_MOUSE_DRAGGED,
+            Self::Up => NSEVENT_LEFT_MOUSE_UP,
+        }
+    }
+
+    fn name(self) -> &'static str {
+        match self {
+            Self::Move => "move",
+            Self::Down => "down",
+            Self::Drag => "drag",
+            Self::Up => "up",
+        }
+    }
 }
 
 fn create_nsevent_cgevent(
