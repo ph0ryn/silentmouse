@@ -2,7 +2,9 @@
 name = "silentmouse"
 version = "0.1.0"
 edition = "2024"
-license = "MIT OR Apache-2.0"
+description = "Post background-capable mouse events to macOS windows"
+license = "MIT"
+repository = "https://github.com/ph0ryn/silentmouse"
 
 [dependencies]
 clap = { version = "4.5.53", features = ["derive"] }
