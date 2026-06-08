@@ -7,6 +7,12 @@ It is a thin wrapper around the macOS event delivery path used by AppKit and
 CoreGraphics. Coordinates are window-local: `(0, 0)` is the top-left corner of
 the target window.
 
+## Install
+
+```sh
+cargo install --git https://github.com/ph0ryn/silentmouse.git
+```
+
 ## Usage
 
 ```sh
