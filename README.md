@@ -12,7 +12,7 @@ silentmouse click -w 1 -x 250 -y 250 --duration 200
 
 The v1 CLI is intentionally narrow: one left click, one target window, one
 window-local coordinate. `--duration` / `-d` controls the milliseconds between
-mouse down and mouse up, and defaults to `80`.
+mouse down and mouse up, and defaults to `35`.
 
 ## Permissions
 
